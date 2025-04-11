@@ -5,74 +5,116 @@
   <title>Góc Tâm Sự</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f2f2f2;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
       padding: 30px;
     }
-    h1 {
-      color: #333;
-    }
     .container {
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
       background: #fff;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     textarea {
       width: 100%;
-      height: 100px;
       padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 6px;
+      font-size: 16px;
+      border-radius: 5px;
       border: 1px solid #ccc;
       resize: none;
-      font-size: 16px;
     }
     button {
-      background: #007BFF;
-      color: white;
-      border: none;
+      margin-top: 10px;
       padding: 10px 20px;
-      border-radius: 6px;
+      font-size: 16px;
+      border: none;
+      background: #28a745;
+      color: white;
+      border-radius: 5px;
       cursor: pointer;
     }
     .entry {
-      background: #e9ecef;
+      background: #eee;
       padding: 15px;
-      border-radius: 6px;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    .reply {
+      background: #d4edda;
+      padding: 10px;
+      border-radius: 5px;
       margin-top: 10px;
+    }
+    input.reply-input {
+      width: 80%;
+      padding: 5px;
     }
   </style>
 </head>
 <body>
-<body>
   <div class="container">
-    <h1>🕯 Góc Tâm Sự</h1>
-    <p style="text-align: center; color: #555;">
-      Viết ra những điều bạn đang giấu kín. Ẩn danh. Không ai biết bạn là ai. Nhưng ai cũng lắng nghe.
-    </p>
+    <h2>📝 Góc Tâm Sự</h2>
+    <textarea id="messageInput" rows="4" placeholder="Tâm sự của bạn..."></textarea><br>
+    <button onclick="submitMessage()">Gửi tâm sự</button>
 
-    <!-- Google Form -->
-    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeoBr50Yf1Eg3Y_sokqVHBd0HePf780RXfkXnK4cxRZm87Z9w/viewform?embedded=true" width="100%" height="600" frameborder="0" marginheight="0" marginwidth="0">Đang tải…</iframe>
-  </div>
-</body>
-
+    <div id="messagesContainer"></div>
   </div>
 
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
   <script>
-    function addEntry() {
-      const input = document.getElementById("noteInput");
-      const text = input.value.trim();
-      if (text) {
-        const entry = document.createElement("div");
-        entry.className = "entry";
-        entry.textContent = text;
-        document.getElementById("entries").prepend(entry);
-        input.value = "";
-      }
+    // 🔧 THAY CẤU HÌNH NÀY BẰNG firebaseConfig của bạn
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    function submitMessage() {
+      const message = document.getElementById("messageInput").value;
+      if (message.trim() === "") return;
+      const newMsgRef = database.ref("messages").push();
+      newMsgRef.set({ text: message, reply: "" });
+      document.getElementById("messageInput").value = "";
     }
+
+    function loadMessages() {
+      const container = document.getElementById("messagesContainer");
+      database.ref("messages").on("value", snapshot => {
+        container.innerHTML = "";
+        snapshot.forEach(child => {
+          const data = child.val();
+          const div = document.createElement("div");
+          div.className = "entry";
+          div.innerHTML = `
+            <p><strong>Tâm sự:</strong> ${data.text}</p>
+            ${data.reply ? `<div class="reply"><strong>Phản hồi:</strong> ${data.reply}</div>` : `
+            <input class="reply-input" id="reply-${child.key}" placeholder="Phản hồi tại đây..."/>
+            <button onclick="sendReply('${child.key}')">Gửi phản hồi</button>`}
+          `;
+          container.prepend(div);
+        });
+      });
+    }
+
+    function sendReply(key) {
+      const input = document.getElementById(`reply-${key}`);
+      const reply = input.value;
+      if (reply.trim() === "") return;
+      database.ref("messages/" + key).update({ reply: reply });
+    }
+
+    loadMessages();
   </script>
 </body>
 </html>
